@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Script pour extraire et télécharger tous les souvenirs Snapchat depuis le fichier HTML
+Script to extract and download all Snapchat Memories from the HTML file
 """
 
 import re
@@ -19,34 +19,36 @@ import argparse
 import subprocess
 import shutil
 import tempfile
+import concurrent.futures
+import threading
 
 
 def check_ffmpeg_available():
     """
-    Vérifie si ffmpeg est disponible sur le système
+    Check whether ffmpeg is available on the system
     
     Returns:
-        True si ffmpeg est disponible, False sinon
+        True if ffmpeg is available, False otherwise
     """
     return shutil.which('ffmpeg') is not None
 
 
 def check_ffprobe_available():
     """
-    Vérifie si ffprobe est disponible sur le système
+    Check whether ffprobe is available on the system
 
     Returns:
-        True si ffprobe est disponible, False sinon
+        True if ffprobe is available, False otherwise
     """
     return shutil.which('ffprobe') is not None
 
 
 def get_video_dimensions(video_path):
     """
-    Récupère les dimensions (largeur, hauteur) d'une vidéo via ffprobe
+    Get video dimensions (width, height) using ffprobe
 
     Returns:
-        Tuple (width, height) ou None si indisponible
+        Tuple (width, height) or None if unavailable
     """
     if not check_ffprobe_available():
         return None
@@ -80,15 +82,15 @@ def get_video_dimensions(video_path):
 
 def apply_overlay_to_video(video_path, overlay_path, output_path):
     """
-    Applique un overlay sur une vidéo en utilisant ffmpeg
+    Apply an overlay to a video using ffmpeg
     
     Args:
-        video_path: Chemin vers la vidéo de base
-        overlay_path: Chemin vers l'image overlay (PNG avec transparence)
-        output_path: Chemin de sortie pour la vidéo finale
+        video_path: Path to the base video
+        overlay_path: Path to the overlay image (PNG with transparency)
+        output_path: Output path for the final video
         
     Returns:
-        True si succès, False sinon
+        True on success, False otherwise
     """
     temp_overlay = None
     overlay_to_use = overlay_path
@@ -96,7 +98,7 @@ def apply_overlay_to_video(video_path, overlay_path, output_path):
         if not check_ffmpeg_available():
             return False
 
-        # Convertir l'overlay en PNG si nécessaire pour ffmpeg.
+        # Convert the overlay to PNG if needed for ffmpeg.
         try:
             img = Image.open(overlay_path)
             img.load()
@@ -110,7 +112,7 @@ def apply_overlay_to_video(video_path, overlay_path, output_path):
         except Exception:
             overlay_to_use = overlay_path
 
-        # Construire le filtre en alignant l'overlay sur la taille de la video.
+        # Build the filter by aligning the overlay to the video size.
         video_dims = get_video_dimensions(video_path)
         if video_dims:
             even_width = video_dims[0] - (video_dims[0] % 2)
@@ -127,7 +129,7 @@ def apply_overlay_to_video(video_path, overlay_path, output_path):
                 "[base][ovr]overlay=0:0:format=auto[v]"
             )
 
-        # Commande ffmpeg robuste: boucle l'image overlay et aligne les tailles.
+        # Robust ffmpeg command: loop the overlay image and align sizes.
         cmd = [
             'ffmpeg',
             '-hide_banner',
@@ -158,25 +160,25 @@ def apply_overlay_to_video(video_path, overlay_path, output_path):
                 timeout=300
             )
         except subprocess.TimeoutExpired:
-            print("   ⚠️  ffmpeg a dépassé le délai (300s)")
+            print("   ⚠️  ffmpeg timed out (300s)")
             return False
 
         if result.returncode != 0:
             if result.stderr:
                 err = result.stderr.strip()
                 if err:
-                    print("   ⚠️  Erreur ffmpeg:")
+                    print("   ⚠️  ffmpeg error:")
                     print(err)
             return False
 
-        # Vérifier que le fichier de sortie existe et n'est pas vide
+        # Verify the output file exists and is not empty.
         if os.path.exists(output_path) and os.path.getsize(output_path) > 10000:
             return True
         return False
     except Exception:
         return False
     finally:
-        # Nettoyer le fichier temporaire
+        # Clean up the temporary file.
         if temp_overlay and os.path.exists(temp_overlay):
             try:
                 os.remove(temp_overlay)
@@ -186,27 +188,27 @@ def apply_overlay_to_video(video_path, overlay_path, output_path):
 
 def extract_download_links(html_file):
     """
-    Extrait tous les liens de téléchargement du fichier HTML
+    Extract all download links from the HTML file
     
     Args:
-        html_file: Chemin vers le fichier HTML
+        html_file: Path to the HTML file
         
     Returns:
-        Liste de dictionnaires contenant les informations sur chaque fichier
+        List of dictionaries containing info for each file
     """
-    print(f"📖 Lecture du fichier: {html_file}")
+    print(f"📖 Reading file: {html_file}")
     
     with open(html_file, 'r', encoding='utf-8') as f:
         content = f.read()
     
-    # Pattern pour extraire les URLs dans les appels downloadMemories()
+    # Pattern to extract URLs from downloadMemories() calls.
     pattern = r"downloadMemories\('(https://[^']+)'"
     
     matches = re.findall(pattern, content)
     
-    print(f"✅ {len(matches)} liens de téléchargement trouvés\n")
+    print(f"✅ {len(matches)} download links found\n")
     
-    # Extraire aussi les métadonnées (date, type de média)
+    # Also extract metadata (date, media type).
     soup = BeautifulSoup(content, 'html.parser')
     
     memories = []
@@ -215,12 +217,12 @@ def extract_download_links(html_file):
     for row in rows:
         cells = row.find_all('td')
         if len(cells) >= 4:
-            # Extraire date, type de média et lien
+            # Extract date, media type, and link.
             date_str = cells[0].get_text(strip=True)
             media_type = cells[1].get_text(strip=True)
             location = cells[2].get_text(strip=True)
             
-            # Chercher le lien dans la dernière cellule
+            # Look for the link in the last cell.
             link_cell = cells[3]
             onclick = link_cell.find('a', {'onclick': True})
             if onclick:
@@ -240,51 +242,51 @@ def extract_download_links(html_file):
 
 def apply_overlay_to_image(base_image_path, overlay_image_path, output_path):
     """
-    Applique l'overlay (avec caption) sur l'image de base
+    Apply the overlay (with caption) on the base image
     
     Args:
-        base_image_path: Chemin vers l'image de base
-        overlay_image_path: Chemin vers l'overlay
-        output_path: Chemin de sortie pour l'image fusionnée
+        base_image_path: Path to the base image
+        overlay_image_path: Path to the overlay
+        output_path: Output path for the merged image
         
     Returns:
-        True si succès, False sinon
+        True on success, False otherwise
     """
     try:
-        print(f"\n      🔧 Ouverture de la base: {os.path.basename(base_image_path)}")
-        print(f"      🔧 Ouverture de l'overlay: {os.path.basename(overlay_image_path)}")
+        print(f"\n      🔧 Opening base: {os.path.basename(base_image_path)}")
+        print(f"      🔧 Opening overlay: {os.path.basename(overlay_image_path)}")
         
-        # Ouvrir les deux images
+        # Open both images.
         base = Image.open(base_image_path)
         overlay = Image.open(overlay_image_path)
         
-        print(f"      📐 Taille base: {base.size}, mode: {base.mode}")
-        print(f"      📐 Taille overlay: {overlay.size}, mode: {overlay.mode}")
+        print(f"      📐 Base size: {base.size}, mode: {base.mode}")
+        print(f"      📐 Overlay size: {overlay.size}, mode: {overlay.mode}")
         
-        # Convertir en RGBA pour la composition
+        # Convert to RGBA for compositing.
         base = base.convert('RGBA')
         overlay = overlay.convert('RGBA')
         
-        # S'assurer que l'overlay a la même taille que la base
+        # Ensure the overlay has the same size as the base.
         if overlay.size != base.size:
-            print(f"      🔄 Redimensionnement overlay de {overlay.size} vers {base.size}")
+            print(f"      🔄 Resizing overlay from {overlay.size} to {base.size}")
             overlay = overlay.resize(base.size, Image.Resampling.LANCZOS)
         
-        # Composite l'overlay sur la base
-        print(f"      🎨 Composition des images...")
+        # Composite the overlay onto the base.
+        print(f"      🎨 Compositing images...")
         combined = Image.alpha_composite(base, overlay)
         
-        # Sauvegarder (convertir en RGB si nécessaire pour JPEG)
+        # Save (convert to RGB if needed for JPEG).
         if output_path.lower().endswith(('.jpg', '.jpeg')):
-            print(f"      💾 Conversion en RGB pour JPEG")
+            print(f"      💾 Converting to RGB for JPEG")
             combined = combined.convert('RGB')
         
-        print(f"      💾 Sauvegarde vers: {os.path.basename(output_path)}")
+        print(f"      💾 Saving to: {os.path.basename(output_path)}")
         combined.save(output_path, quality=95)
-        print(f"      ✅ Succès!")
+        print(f"      ✅ Success!")
         return True
     except Exception as e:
-        print(f"\n⚠️  Erreur lors de l'application de l'overlay: {str(e)}")
+        print(f"\n⚠️  Error applying overlay: {str(e)}")
         import traceback
         traceback.print_exc()
         return False
@@ -292,25 +294,25 @@ def apply_overlay_to_image(base_image_path, overlay_image_path, output_path):
 
 def process_extracted_files(extract_folder, processed_folder, memory):
     """
-    Traite les fichiers extraits: applique l'overlay et sauvegarde le résultat
+    Process extracted files: apply the overlay and save the result
     
     Args:
-        extract_folder: Dossier contenant les fichiers extraits du ZIP
-        processed_folder: Dossier de destination pour le fichier traité
-        memory: Métadonnées du souvenir
+        extract_folder: Folder containing the ZIP-extracted files
+        processed_folder: Destination folder for the processed file
+        memory: Memory metadata
         
     Returns:
-        True si succès, False sinon
+        True on success, False otherwise
     """
     try:
-        # Lister tous les fichiers dans le dossier extrait
+        # List all files in the extracted folder.
         files = os.listdir(extract_folder)
         
-        # Séparer les fichiers média et overlay
+        # Separate media and overlay files.
         media_file = None
         overlay_file = None
         
-        # Chercher les fichiers avec -main et -overlay dans leur nom
+        # Look for files with -main and -overlay in their names.
         overlay_candidates = []
         overlay_exts = ('.png', '.webp', '.jpg', '.jpeg')
         for file in files:
@@ -333,16 +335,16 @@ def process_extracted_files(extract_folder, processed_folder, memory):
             overlay_candidates.sort(key=overlay_priority)
             overlay_file = os.path.join(extract_folder, overlay_candidates[0])
         
-        print(f"\n   📁 Fichiers trouvés: {files}")
-        print(f"   🎬 Média: {os.path.basename(media_file) if media_file else 'Non trouvé'}")
-        print(f"   🎨 Overlay: {os.path.basename(overlay_file) if overlay_file else 'Non trouvé'}")
+        print(f"\n   📁 Files found: {files}")
+        print(f"   🎬 Media: {os.path.basename(media_file) if media_file else 'Not found'}")
+        print(f"   🎨 Overlay: {os.path.basename(overlay_file) if overlay_file else 'Not found'}")
         
         if not media_file:
-            # Pas de fichier média trouvé
-            print(f"   ⚠️  Aucun fichier média trouvé!")
+            # No media file found.
+            print(f"   ⚠️  No media file found!")
             return False
         
-        # Déterminer le nom de fichier de sortie à partir du nom du média
+        # Determine the output filename from the media name.
         media_basename = os.path.basename(media_file)
         media_stem, media_ext = os.path.splitext(media_basename)
         if media_stem.endswith('-main'):
@@ -351,74 +353,74 @@ def process_extracted_files(extract_folder, processed_folder, memory):
             base_id = media_stem
         output_file = os.path.join(processed_folder, f"{base_id}-processed{media_ext}")
         
-        # Pour les vidéos, on ne peut pas appliquer l'overlay facilement
+        # For videos, overlay is not straightforward.
         if media_file.lower().endswith(('.mp4', '.mov')):
             
-            # Essayer d'appliquer l'overlay avec ffmpeg
+            # Try applying the overlay with ffmpeg.
             if overlay_file and check_ffmpeg_available():
-                print(f"   ✨ Application de l'overlay avec ffmpeg...")
+                print(f"   ✨ Applying overlay with ffmpeg...")
                 success = apply_overlay_to_video(media_file, overlay_file, output_file)
                 
                 if success:
-                    print(f"   ✅ Overlay appliqué avec succès!")
+                    print(f"   ✅ Overlay applied successfully!")
                 else:
-                    print(f"   ⚠️  Échec ffmpeg, copie sans overlay")
-                    # Copier sans overlay
+                    print(f"   ⚠️  ffmpeg failed, copying without overlay")
+                    # Copy without overlay.
                     with open(media_file, 'rb') as src:
                         with open(output_file, 'wb') as dst:
                             dst.write(src.read())
             else:
-                # Pas de ffmpeg ou pas d'overlay
+                # No ffmpeg or no overlay.
                 if not check_ffmpeg_available() and overlay_file:
-                    print(f"   ⚠️  ffmpeg non disponible, copie sans overlay")
+                    print(f"   ⚠️  ffmpeg not available, copying without overlay")
                 
                 with open(media_file, 'rb') as src:
                     with open(output_file, 'wb') as dst:
                         dst.write(src.read())
         
-        # Pour les images, appliquer l'overlay
+        # For images, apply the overlay.
         elif media_file.lower().endswith(('.jpg', '.jpeg', '.png')):
             
             if overlay_file:
-                # Appliquer l'overlay sur l'image
-                print(f"   ✨ Application de l'overlay...", end=' ')
+                # Apply the overlay on the image.
+                print(f"   ✨ Applying overlay...", end=' ')
                 success = apply_overlay_to_image(media_file, overlay_file, output_file)
                 if success:
                     print("✅")
                 else:
                     print("❌")
-                    # Si échec, copier l'image originale
+                    # On failure, copy the original image.
                     with open(media_file, 'rb') as src:
                         with open(output_file, 'wb') as dst:
                             dst.write(src.read())
             else:
-                # Pas d'overlay, copier l'image telle quelle
+                # No overlay, copy the image as-is.
                 with open(media_file, 'rb') as src:
                     with open(output_file, 'wb') as dst:
                         dst.write(src.read())
         
-        # Définir le timestamp uniquement pour le fichier de sortie
+        # Set the timestamp only for the output file.
         if os.path.exists(output_file):
             apply_timestamp(output_file, memory)
         
         return True
     except Exception as e:
-        print(f"\n⚠️  Erreur lors du traitement: {str(e)}")
+        print(f"\n⚠️  Error during processing: {str(e)}")
         return False
 
 
 def generate_filename(memory, index):
     """
-    Génère un nom de fichier unique basé sur les métadonnées
+    Generate a unique filename based on metadata
     
     Args:
-        memory: Dictionnaire avec les infos du souvenir
-        index: Index du fichier
+        memory: Dictionary with memory info
+        index: File index
         
     Returns:
-        Nom de fichier généré
+        Generated filename
     """
-    # Extraire la date et nettoyer
+    # Extract and normalize the date.
     date_str = memory['date']
     try:
         # Format: "2025-12-22 23:03:10 UTC"
@@ -427,7 +429,7 @@ def generate_filename(memory, index):
     except:
         date_formatted = f"memory_{index:04d}"
     
-    # Déterminer l'extension selon le type
+    # Determine the extension based on the media type.
     media_type = memory['type'].lower()
     if 'video' in media_type:
         extension = 'mp4'
@@ -443,7 +445,7 @@ def generate_filename(memory, index):
 
 def apply_timestamp(file_path, memory):
     """
-    Applique le timestamp du souvenir au fichier donné
+    Apply the memory timestamp to the given file
     """
     if not memory or not memory.get('date'):
         return
@@ -457,15 +459,15 @@ def apply_timestamp(file_path, memory):
 
 def select_test_memories(memories, video_limit=2, image_limit=2):
     """
-    Sélectionne un sous-ensemble de souvenirs pour le mode test
+    Select a subset of memories for test mode
 
     Args:
-        memories: Liste des souvenirs
-        video_limit: Nombre max de vidéos
-        image_limit: Nombre max d'images
+        memories: List of memories
+        video_limit: Max number of videos
+        image_limit: Max number of images
 
     Returns:
-        Liste filtrée des souvenirs
+        Filtered list of memories
     """
     selected = []
     video_count = 0
@@ -486,27 +488,38 @@ def select_test_memories(memories, video_limit=2, image_limit=2):
     return selected
 
 
-def download_file(url, destination, processed_destination, filename, index, total, memory=None):
+def download_file(
+    url,
+    destination,
+    processed_destination,
+    filename,
+    index,
+    total,
+    memory=None,
+    max_retries=3,
+    blocked_event=None,
+    blocked_info=None
+):
     """
-    Télécharge un fichier depuis une URL, extrait le ZIP et applique l'overlay
+    Download a file from a URL, extract the ZIP, and apply the overlay
     
     Args:
-        url: URL du fichier
-        destination: Répertoire de destination pour les extraits temporaires
-        processed_destination: Répertoire pour les fichiers traités
-        filename: Nom du fichier (utilisé comme nom de dossier)
-        index: Numéro du fichier en cours
-        total: Nombre total de fichiers
-        memory: Dictionnaire avec les métadonnées du souvenir (optionnel)
+        url: File URL
+        destination: Destination folder for temporary extracts
+        processed_destination: Folder for processed files
+        filename: Filename (used as folder name)
+        index: Current file index
+        total: Total number of files
+        memory: Dictionary with memory metadata (optional)
         
     Returns:
-        True si succès, False sinon
+        True on success, False otherwise
     """
-    # Créer un dossier temporaire pour ce souvenir (sans l'extension)
+    # Create a temp folder for this memory (without extension).
     folder_name = os.path.splitext(filename)[0]
     folder_path = os.path.join(destination, folder_name)
     
-    # Vérifier si déjà traité
+    # Check if already processed.
     date_str = memory.get('date', '') if memory else ''
     try:
         date_obj = datetime.strptime(date_str, "%Y-%m-%d %H:%M:%S UTC")
@@ -514,202 +527,330 @@ def download_file(url, destination, processed_destination, filename, index, tota
     except:
         date_formatted = f"memory_{index:04d}"
     
-    # Vérifier si des fichiers avec ce timestamp existent déjà
+    # Check if files with this timestamp already exist.
     if os.path.exists(processed_destination):
         existing_files = [f for f in os.listdir(processed_destination) if f.startswith(date_formatted)]
         if existing_files:
-            print(f"⏭️  [{index}/{total}] Déjà traité: {date_formatted}")
+            print(f"⏭️  [{index}/{total}] Already processed: {date_formatted}")
             return True
     
-    try:
-        print(f"⬇️  [{index}/{total}] Téléchargement: {folder_name}...", end=' ', flush=True)
-        
-        # Télécharger avec un timeout
-        response = requests.get(url, timeout=30, stream=True)
-        response.raise_for_status()
-        
-        # Lire le contenu
-        content = b''
-        for chunk in response.iter_content(chunk_size=8192):
-            if chunk:
-                content += chunk
-        
-        file_size = len(content) / (1024 * 1024)  # En MB
-        
-        # Vérifier si c'est un fichier ZIP
+    if blocked_event and blocked_event.is_set():
+        print(f"⏭️  [{index}/{total}] Block detected, skipping: {folder_name}")
+        return False
+
+    print(f"⬇️  [{index}/{total}] Downloading: {folder_name}...", end=' ', flush=True)
+
+    attempt = 0
+    while True:
+        if blocked_event and blocked_event.is_set():
+            print(f"⏭️  [{index}/{total}] Block detected, skipping: {folder_name}")
+            return False
+
         try:
-            with zipfile.ZipFile(io.BytesIO(content)) as zip_file:
-                # C'est un ZIP, l'extraire dans un dossier temporaire
-                os.makedirs(folder_path, exist_ok=True)
-                zip_file.extractall(folder_path)
-                
-                print(f"✅ ({file_size:.2f} MB)", end=' ')
-                
-                # Créer le dossier de destination s'il n'existe pas
+            # Download with a timeout.
+            response = requests.get(url, timeout=30, stream=True)
+            status = response.status_code
+            if status in (403, 429):
+                response.close()
+                if blocked_event:
+                    blocked_event.set()
+                if blocked_info is not None and 'status' not in blocked_info:
+                    blocked_info['status'] = status
+                print(f"🚫 Blocked (HTTP {status})")
+                return False
+            if status >= 500:
+                response.close()
+                raise requests.exceptions.RequestException(f"HTTP {status}")
+            if status >= 400:
+                response.close()
+                print(f"❌ HTTP error {status}")
+                return False
+
+            # Read the content.
+            content = b''
+            for chunk in response.iter_content(chunk_size=8192):
+                if chunk:
+                    content += chunk
+
+            file_size = len(content) / (1024 * 1024)  # In MB
+
+            # Check if it's a ZIP file.
+            try:
+                with zipfile.ZipFile(io.BytesIO(content)) as zip_file:
+                    # It's a ZIP, extract to a temp folder.
+                    os.makedirs(folder_path, exist_ok=True)
+                    zip_file.extractall(folder_path)
+
+                    print(f"✅ ({file_size:.2f} MB)", end=' ')
+
+                    # Create the destination folder if it doesn't exist.
+                    os.makedirs(processed_destination, exist_ok=True)
+                    
+                    # Process extracted files (apply overlay).
+                    success = process_extracted_files(folder_path, processed_destination, memory)
+                    
+                    if success:
+                        print("→ 🎨 Processed")
+                    else:
+                        print("→ ⚠️  Copied without overlay")
+
+                    # Keep the temp folder with raw files.
+
+            except zipfile.BadZipFile:
+                # Not a ZIP, save as a single file in processed.
                 os.makedirs(processed_destination, exist_ok=True)
-                
-                # Traiter les fichiers extraits (appliquer overlay)
-                success = process_extracted_files(folder_path, processed_destination, memory)
-                
-                if success:
-                    print("→ 🎨 Traité")
-                else:
-                    print("→ ⚠️  Copié sans overlay")
-                
-                # Garder le dossier temporaire avec les fichiers bruts
-                
-        except zipfile.BadZipFile:
-            # Ce n'est pas un ZIP, sauvegarder comme fichier unique dans processed
-            os.makedirs(processed_destination, exist_ok=True)
-            filepath = os.path.join(processed_destination, filename)
-            
-            with open(filepath, 'wb') as f:
-                f.write(content)
-            
-            # Définir le timestamp
-            apply_timestamp(filepath, memory)
-            
-            print(f"✅ ({file_size:.2f} MB)")
-        
-        return True
-        
-    except requests.exceptions.RequestException as e:
-        print(f"❌ Erreur: {str(e)}")
-        return False
-    except Exception as e:
-        print(f"❌ Erreur inattendue: {str(e)}")
-        return False
+                filepath = os.path.join(processed_destination, filename)
+
+                with open(filepath, 'wb') as f:
+                    f.write(content)
+
+                # Set the timestamp.
+                apply_timestamp(filepath, memory)
+
+                print(f"✅ ({file_size:.2f} MB)")
+
+            return True
+
+        except requests.exceptions.RequestException as e:
+            attempt += 1
+            if attempt >= max_retries:
+                print(f"❌ Error: {str(e)}")
+                return False
+            wait_seconds = min(2 ** (attempt - 1), 8)
+            print(f"⚠️  Network error, retrying in {wait_seconds}s")
+            time.sleep(wait_seconds)
+        except Exception as e:
+            print(f"❌ Unexpected error: {str(e)}")
+            return False
 
 
 def main():
-    """Fonction principale"""
+    """Main function"""
+    start_time_total = time.time()
     
-    # Parser les arguments
+    # Parse arguments.
     parser = argparse.ArgumentParser(
-        description='Téléchargeur de souvenirs Snapchat',
+        description='Snapchat Memories downloader',
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog='''
-Exemples:
-  %(prog)s                                    # Utilise les valeurs par défaut
-  %(prog)s --html mon_fichier.html            # Spécifie le fichier HTML
-  %(prog)s --test                             # Mode test (5 fichiers)
-  %(prog)s --html fichier.html --test         # Combine les options
+Examples:
+  %(prog)s                                    # Uses default values
+  %(prog)s --html my_file.html                # Specify the HTML file
+  %(prog)s --test                             # Test mode (5 files)
+  %(prog)s --html file.html --test            # Combine options
         ''')
     
     parser.add_argument(
         '--html',
         default='./html/memories_history.html',
-        help='Chemin vers le fichier HTML Snapchat (défaut: ./html/memories_history.html)'
+        help='Path to the Snapchat HTML file (default: ./html/memories_history.html)'
     )
     parser.add_argument(
         '--test',
         action='store_true',
-        help='Mode test: limite à 5 fichiers'
+        help='Test mode: limit to 4 files (2 images and 2 videos)'
     )
     parser.add_argument(
         '--limit',
         type=int,
-        help='Limite le nombre de fichiers à télécharger (remplace --test)'
+        help='Limit the number of files to download (overrides --test)'
+    )
+    parser.add_argument(
+        '--workers',
+        type=int,
+        default=1,
+        help='Number of parallel downloads (default: 1)'
+    )
+    parser.add_argument(
+        '--retries',
+        type=int,
+        default=3,
+        help="Number of retry attempts on failure (default: 3)"
     )
     
     args = parser.parse_args()
     
     print("=" * 70)
-    print("📸 TÉLÉCHARGEUR DE SOUVENIRS SNAPCHAT")
+    print("📸 SNAPCHAT MEMORIES DOWNLOADER")
     print("=" * 70)
     print()
 
-    # Vérifier la disponibilité de ffmpeg/ffprobe avant toute exécution
+    # Check ffmpeg/ffprobe availability before running.
     if not check_ffmpeg_available() or not check_ffprobe_available():
-        print("❌ Erreur: ffmpeg et ffprobe sont requis pour exécuter ce script.")
-        print("   Installez ffmpeg puis relancez.")
+        print("❌ Error: ffmpeg and ffprobe are required to run this script.")
+        print("   Install ffmpeg and try again.")
         sys.exit(1)
     
-    # Vérifier l'existence du fichier HTML
+    # Check that the HTML file exists.
     html_file = args.html
     if not os.path.exists(html_file):
-        print(f"❌ Erreur: Le fichier '{html_file}' n'existe pas!")
+        print(f"❌ Error: The file '{html_file}' does not exist!")
         sys.exit(1)
     
-    # Extraire les liens
+    # Extract links.
     memories = extract_download_links(html_file)
     
     if not memories:
-        print("❌ Aucun lien de téléchargement trouvé dans le fichier HTML!")
+        print("❌ No download links found in the HTML file!")
         sys.exit(1)
     
-    # Afficher un résumé
+    # Print a summary.
     video_count = sum(1 for m in memories if 'video' in m['type'].lower())
     image_count = sum(1 for m in memories if 'image' in m['type'].lower())
     
-    print(f"📊 Résumé:")
-    print(f"   • Vidéos: {video_count}")
+    print(f"📊 Summary:")
+    print(f"   • Videos: {video_count}")
     print(f"   • Images: {image_count}")
     print(f"   • Total: {len(memories)}")
     print()
     
-    # Appliquer la limite si spécifiée
+    # Apply the limit if specified.
     if args.limit:
         memories = memories[:args.limit]
-        print(f"✅ Limite appliquée: {len(memories)} fichiers")
+        print(f"✅ Limit applied: {len(memories)} files")
         print()
     elif args.test:
         memories = select_test_memories(memories, video_limit=2, image_limit=2)
         selected_videos = sum(1 for m in memories if 'video' in m.get('type', '').lower())
         selected_images = sum(1 for m in memories if 'image' in m.get('type', '').lower())
-        print(f"✅ Mode test activé: {len(memories)} fichiers")
-        print(f"   • Vidéos: {selected_videos}")
+        print(f"✅ Test mode enabled: {len(memories)} files")
+        print(f"   • Videos: {selected_videos}")
         print(f"   • Images: {selected_images}")
         print()
     
-    # Répertoires de destination
+    # Destination folders.
     temp_dest = "snapchat_memories_raw"
     processed_dest = "snapchat_memories_processed"
     
-    # Créer les répertoires s'ils n'existent pas
+    # Create folders if they don't exist.
     Path(temp_dest).mkdir(parents=True, exist_ok=True)
     Path(processed_dest).mkdir(parents=True, exist_ok=True)
-    print(f"✅ Répertoires créés/vérifiés:")
+    print(f"✅ Directories created/checked:")
     print(f"   • Raw: {temp_dest}")
-    print(f"   • Traité: {processed_dest}")
+    print(f"   • Processed: {processed_dest}")
     print()
     
     print()
     print("=" * 70)
-    print("⬇️  DÉBUT DU TÉLÉCHARGEMENT")
+    print("⬇️  STARTING DOWNLOAD")
     print("=" * 70)
     print()
+
+    if args.workers < 1:
+        print("❌ Error: --workers must be >= 1")
+        sys.exit(1)
+    if args.retries < 1:
+        print("❌ Error: --retries must be >= 1")
+        sys.exit(1)
+
+    if args.workers > 1:
+        print(f"⚙️  Parallel downloads: {args.workers} workers")
+        print()
     
-    # Télécharger tous les fichiers
-    success_count = 0
-    failed_count = 0
+    # Download all files.
     start_time = time.time()
+    results = {}
+
+    if args.workers == 1:
+        for index, memory in enumerate(memories, 1):
+            filename = generate_filename(memory, index)
+
+            ok = download_file(
+                memory['url'],
+                temp_dest,
+                processed_dest,
+                filename,
+                index,
+                len(memories),
+                memory,
+                max_retries=args.retries
+            )
+            results[index] = ok
+
+            # Short pause between downloads to avoid overloading the server.
+            if index < len(memories):
+                time.sleep(0.5)
+    else:
+        blocked_event = threading.Event()
+        blocked_info = {}
+        total = len(memories)
+
+        with concurrent.futures.ThreadPoolExecutor(max_workers=args.workers) as executor:
+            future_to_index = {}
+            for index, memory in enumerate(memories, 1):
+                filename = generate_filename(memory, index)
+                future = executor.submit(
+                    download_file,
+                    memory['url'],
+                    temp_dest,
+                    processed_dest,
+                    filename,
+                    index,
+                    total,
+                    memory,
+                    max_retries=args.retries,
+                    blocked_event=blocked_event,
+                    blocked_info=blocked_info
+                )
+                future_to_index[future] = index
+                # Slight stagger to avoid an aggressive burst.
+                if index < total:
+                    time.sleep(0.1)
+
+            for future in concurrent.futures.as_completed(future_to_index):
+                index = future_to_index[future]
+                try:
+                    ok = future.result()
+                except Exception as e:
+                    print(f"❌ Unexpected error: {str(e)}")
+                    ok = False
+                results[index] = ok
+
+        if blocked_event.is_set():
+            status = blocked_info.get('status')
+            if status:
+                print(f"\n🚫 Block detected (HTTP {status}). Falling back to sequential mode.")
+            else:
+                print("\n🚫 Block detected. Falling back to sequential mode.")
+
+            for index, memory in enumerate(memories, 1):
+                if results.get(index):
+                    continue
+                filename = generate_filename(memory, index)
+                ok = download_file(
+                    memory['url'],
+                    temp_dest,
+                    processed_dest,
+                    filename,
+                    index,
+                    len(memories),
+                    memory,
+                    max_retries=args.retries
+                )
+                results[index] = ok
+                if index < len(memories):
+                    time.sleep(0.5)
     
-    for index, memory in enumerate(memories, 1):
-        filename = generate_filename(memory, index)
-        
-        if download_file(memory['url'], temp_dest, processed_dest, filename, index, len(memories), memory):
-            success_count += 1
-        else:
-            failed_count += 1
-        
-        # Petite pause entre les téléchargements pour ne pas surcharger le serveur
-        if index < len(memories):
-            time.sleep(0.5)
-    
-    # Résumé final
+    # Final summary.
     elapsed_time = time.time() - start_time
-    
+    total_elapsed_time = time.time() - start_time_total
+    for index in range(1, len(memories) + 1):
+        results.setdefault(index, False)
+
+    success_count = sum(1 for ok in results.values() if ok)
+    failed_count = len(memories) - success_count
+
     print()
     print("=" * 70)
-    print("✅ TÉLÉCHARGEMENT TERMINÉ")
+    print("✅ DOWNLOAD COMPLETE")
     print("=" * 70)
-    print(f"✅ Réussis: {success_count}/{len(memories)}")
+    print(f"✅ Successful: {success_count}/{len(memories)}")
     if failed_count > 0:
-        print(f"❌ Échoués: {failed_count}/{len(memories)}")
-    print(f"⏱️  Temps écoulé: {elapsed_time:.1f} secondes")
-    print(f"📁 Fichiers traités dans: {os.path.abspath(processed_dest)}")
-    print(f"📁 Fichiers bruts dans: {os.path.abspath(temp_dest)}")
+        print(f"❌ Failed: {failed_count}/{len(memories)}")
+    print(f"⏱️  Download time: {elapsed_time:.1f} seconds")
+    print(f"⏱️  Total time: {total_elapsed_time:.1f} seconds")
+    print(f"📁 Processed files in: {os.path.abspath(processed_dest)}")
+    print(f"📁 Raw files in: {os.path.abspath(temp_dest)}")
     print()
     print()
 
@@ -718,8 +859,8 @@ if __name__ == "__main__":
     try:
         main()
     except KeyboardInterrupt:
-        print("\n\n⚠️  Téléchargement interrompu par l'utilisateur.")
+        print("\n\n⚠️  Download interrupted by the user.")
         sys.exit(1)
     except Exception as e:
-        print(f"\n\n❌ Erreur fatale: {str(e)}")
+        print(f"\n\n❌ Fatal error: {str(e)}")
         sys.exit(1)

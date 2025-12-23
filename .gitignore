@@ -1,2 +1,6 @@
-./.venv/
-./html/html/
+.DS_Store
+__pycache__/
+.venv/
+html/
+snapchat_memories_processed/
+snapchat_memories_raw/
