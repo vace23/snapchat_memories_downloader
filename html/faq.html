@@ -1,0 +1,180 @@
+
+    <!DOCTYPE html>
+    <head>
+        <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+        <title></title>
+        <style>
+            body {
+                font-size: 14px;
+                font-family: 'Avenir Next', 'Helvetica Neue', Arial, Helvetica, sans-serif;
+                margin: 20px auto;
+                width: 1200px;
+            }
+
+            b {
+                font-weight: 600;
+            }
+
+            table {
+                width: 100%;
+                table-layout: fixed;
+            }
+
+            .ghost {
+                padding: 10px;
+                height: 150px;
+                width: 150px;
+                background-color: #FFFE00;
+                display: block;
+                margin: auto;
+                border-radius: 10px;
+            }
+
+            .leftpanel {
+                height: 100vh;
+                position: fixed;
+                top: 0;
+                bottom: 0;
+                width: 300px;
+                color: #6c6c6c;
+                overflow-y: auto;
+            }
+
+            .leftpanel a {
+                text-decoration: none;
+                color: #6c6c6c;
+            }
+
+            .leftpanel ul {
+                margin-left: 20px;
+                padding: 0;
+            }
+
+            .leftpanel li {
+                cursor: pointer;
+                display: block;
+                padding: 11px 16px;
+            }
+
+            .leftpanel li:hover {
+                background-color: #f3f3f3;
+            }
+
+            .leftpanel li.active {
+                background-color: #f3f3f3;
+            }
+
+            .rightpanel th {
+                text-align: left
+            }
+
+            .rightpanel {
+                padding-left: 310px;
+                padding-top: 5px;
+            }
+
+            .rightpanel th, td {
+                padding: 15px;
+                font-weight: normal;
+            }
+            .hidden-div {
+                display: none;
+            }
+
+            .bold-headers th {
+                font-weight: 600;
+            }
+            .single_chat {
+                display: flex;
+                justify-content: space-between;
+                padding: 14px 28px;
+                border: none;
+                background-color: #FFFFFF;
+                cursor: pointer;
+                width: 100%;
+
+            }
+            .thread-list {
+                border-bottom: 0.5px solid;
+            }
+
+            .single_chat:hover {
+                background-color: #e3e3e3;
+            }
+            .thread-list:last-child{
+                border: none;
+            }
+            .icons {
+                left: 50%;
+                transform: translate(120px, 0%);
+                position: absolute;
+                padding-top: 15px;
+            }
+            .back-button {
+                min-height:30px;
+                min-width: 120px;
+                border:none;
+                padding-top: 20px;
+                cursor: pointer;
+            }
+
+            .saved {
+                background: #FFFC00;
+                border-radius: 100px;
+                width: 66px;
+                height:28px;
+                border: none;
+                justify-content: center;
+                align-items: center;
+                font-family: 'Avenir Next';
+                font-style: normal;
+                font-weight: 600;
+                font-size: 12px;
+                color: #845D00;
+                margin-top: 14px;
+                margin-right: 5px;
+                margin-bottom: 17px;
+            }
+        </style>
+    </head>
+    <html>
+    <body>
+    <div class="leftpanel"><img class="ghost" src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA1MDAgNTAwIj48ZGVmcz48c3R5bGU+LmNscy0xe2ZpbGw6I2ZmZjt9PC9zdHlsZT48L2RlZnM+PHRpdGxlPjFBcnRib2FyZCAxIGNvcHkgMjwvdGl0bGU+PGcgaWQ9IlBSSU1BUllfLV9HSE9TVCIgZGF0YS1uYW1lPSJQUklNQVJZIC0gR0hPU1QiPjxwYXRoIGNsYXNzPSJjbHMtMSIgZD0iTTQxNy45MywzNDAuNzFjLTYwLjYxLTI5LjM0LTcwLjI3LTc0LjY0LTcwLjctNzgtLjUyLTQuMDctMS4xMS03LjI3LDMuMzgtMTEuNDEsNC4zMy00LDIzLjU0LTE1Ljg5LDI4Ljg3LTE5LjYxLDguODEtNi4xNiwxMi42OS0xMi4zMSw5LjgzLTE5Ljg3LTItNS4yMy02Ljg3LTcuMi0xMi03LjJhMjIuMywyMi4zLDAsMCwwLTQuODEuNTRjLTkuNjgsMi4xLTE5LjA4LDYuOTUtMjQuNTIsOC4yNmE4LjU2LDguNTYsMCwwLDEtMiwuMjdjLTIuOSwwLTQtMS4yOS0zLjcyLTQuNzguNjgtMTAuNTgsMi4xMi0zMS4yMy40NS01MC41Mi0yLjI5LTI2LjU0LTEwLjg1LTM5LjY5LTIxLTUxLjMyQzMxNi44LDEwMS40MywyOTQsNzcuMiwyNTAsNzcuMlMxODMuMjMsMTAxLjQzLDE3OC4zNSwxMDdjLTEwLjE4LDExLjYzLTE4LjczLDI0Ljc4LTIxLDUxLjMyLTEuNjcsMTkuMjktLjE3LDM5LjkzLjQ1LDUwLjUyLjIsMy4zMi0uODIsNC43OC0zLjcyLDQuNzhhOC42NCw4LjY0LDAsMCwxLTItLjI3Yy01LjQzLTEuMzEtMTQuODMtNi4xNi0yNC41MS04LjI2YTIyLjMsMjIuMywwLDAsMC00LjgxLS41NGMtNS4xNSwwLTEwLDItMTIsNy4yLTIuODYsNy41NiwxLDEzLjcxLDkuODQsMTkuODcsNS4zMywzLjcyLDI0LjU0LDE1LjYsMjguODcsMTkuNjEsNC40OCw0LjE0LDMuOSw3LjM0LDMuMzgsMTEuNDEtLjQzLDMuNDEtMTAuMSw0OC43MS03MC43LDc4LTMuNTUsMS43Mi05LjU5LDUuMzYsMS4wNiwxMS4yNCwxNi43Miw5LjI0LDI3Ljg1LDguMjUsMzYuNSwxMy44Miw3LjM0LDQuNzMsMywxNC45Myw4LjM0LDE4LjYxLDYuNTYsNC41MywyNS45NS0uMzIsNTEsNy45NSwyMSw2LjkyLDMzLjc2LDI2LjQ3LDcxLDI2LjQ3czUwLjM3LTE5LjY0LDcxLTI2LjQ3YzI1LTguMjcsNDQuNDMtMy40Miw1MS03Ljk1LDUuMzMtMy42OCwxLTEzLjg4LDguMzQtMTguNjEsOC42NS01LjU3LDE5Ljc3LTQuNTgsMzYuNS0xMy44MkM0MjcuNTIsMzQ2LjA3LDQyMS40OCwzNDIuNDMsNDE3LjkzLDM0MC43MVoiLz48cGF0aCBkPSJNNDQ0LjMsMzM3LjI2Yy0yLjcyLTcuNC03LjktMTEuMzYtMTMuOC0xNC42NC0xLjExLS42NS0yLjEzLTEuMTctMy0xLjU3LTEuNzYtLjkxLTMuNTYtMS43OS01LjM1LTIuNzItMTguMzktOS43NS0zMi43NS0yMi4wNS00Mi43MS0zNi42M2E4My4wNiw4My4wNiwwLDAsMS03LjMzLTEzYy0uODUtMi40My0uODEtMy44MS0uMi01LjA3YTguMjUsOC4yNSwwLDAsMSwyLjM1LTIuNDVjMy4xNi0yLjA5LDYuNDItNC4yMSw4LjYzLTUuNjQsMy45NC0yLjU1LDcuMDYtNC41Nyw5LjA3LTYsNy41NS01LjI4LDEyLjgzLTEwLjg5LDE2LjEzLTE3LjE2QTM0LjE3LDM0LjE3LDAsMCwwLDQwOS43OCwyMDRjLTUtMTMuMTYtMTcuNDMtMjEuMzMtMzIuNDktMjEuMzNhNDQuNzUsNDQuNzUsMCwwLDAtOS40NSwxYy0uODMuMTgtMS42Ni4zNy0yLjQ3LjU4LjE0LTktLjA2LTE4LjUtLjg2LTI3Ljg1LTIuODQtMzIuODctMTQuMzUtNTAuMS0yNi4zNS02My44NEExMDUsMTA1LDAsMCwwLDMxMS4zNyw3MUMyOTMuMTYsNjAuNiwyNzIuNTEsNTUuMzIsMjUwLDU1LjMyUzIwNi45NCw2MC42LDE4OC43MSw3MWExMDQuNjIsMTA0LjYyLDAsMCwwLTI2Ljg0LDIxLjZjLTEyLDEzLjc0LTIzLjUxLDMxLTI2LjM1LDYzLjg0LS44LDkuMzUtMSwxOC45LS44NywyNy44NS0uODEtLjIxLTEuNjMtLjQtMi40Ni0uNThhNDQuNzUsNDQuNzUsMCwwLDAtOS40NS0xYy0xNS4wNywwLTI3LjUyLDguMTctMzIuNSwyMS4zM2EzNC4yMSwzNC4yMSwwLDAsMCwxLjY1LDI4LjQxYzMuMzEsNi4yNyw4LjU5LDExLjg4LDE2LjE0LDE3LjE2LDIsMS40LDUuMTMsMy40Miw5LjA3LDYsMi4xMywxLjM4LDUuMjQsMy40LDguMjksNS40MmE4LjksOC45LDAsMCwxLDIuNjYsMi42N2MuNjQsMS4zMS42NiwyLjcyLS4yOSw1LjMyYTgyLjI5LDgyLjI5LDAsMCwxLTcuMjEsMTIuNzNjLTkuNzQsMTQuMjUtMjMuNjgsMjYuMzMtNDEuNDgsMzYtOS40Myw1LTE5LjIzLDguMzQtMjMuMzcsMTkuNTktMy4xMiw4LjQ5LTEuMDgsMTguMTUsNi44NSwyNi4yOWgwYTM5LjYzLDM5LjYzLDAsMCwwLDEwLDcuNTcsMTA4LjM1LDEwOC4zNSwwLDAsMCwyNC40Nyw5Ljc5LDE2LjE2LDE2LjE2LDAsMCwxLDQuOTQsMi4yMWMyLjg5LDIuNTMsMi40OCw2LjM0LDYuMzMsMTEuOTJhMjcuOCwyNy44LDAsMCwwLDcuMjQsNy4zNmM4LjA4LDUuNTgsMTcuMTYsNS45MywyNi43OCw2LjMsOC42OS4zMywxOC41NC43MSwyOS43OSw0LjQyLDQuNjYsMS41NCw5LjUsNC41MiwxNS4xMSw4LDEzLjQ3LDguMjgsMzEuOTEsMTkuNjEsNjIuNzcsMTkuNjFzNDkuNDMtMTEuMzksNjMtMTkuN2M1LjU3LTMuNDIsMTAuMzgtNi4zNywxNC45MS03Ljg3LDExLjI1LTMuNzIsMjEuMS00LjA5LDI5Ljc5LTQuNDIsOS42Mi0uMzcsMTguNy0uNzIsMjYuNzgtNi4zYTI3Ljg5LDI3Ljg5LDAsMCwwLDguMjQtOWMyLjc3LTQuNzEsMi43LTgsNS4zLTEwLjNhMTUuMzIsMTUuMzIsMCwwLDEsNC42NC0yLjEyLDEwOC43NiwxMDguNzYsMCwwLDAsMjQuOC05Ljg4QTM5LDM5LDAsMCwwLDQzNy45NCwzNjNsLjEtLjEyQzQ0NS40OCwzNTQuOTIsNDQ3LjM1LDM0NS41NCw0NDQuMywzMzcuMjZaTTQxNi44NywzNTJjLTE2LjczLDkuMjQtMjcuODUsOC4yNS0zNi41LDEzLjgyLTcuMzUsNC43My0zLDE0LjkzLTguMzQsMTguNjEtNi41Niw0LjUzLTI1Ljk1LS4zMi01MSw3Ljk1LTIwLjY2LDYuODMtMzMuODQsMjYuNDctNzEsMjYuNDdTMjAwLDM5OS4yNSwxNzksMzkyLjMzYy0yNS04LjI3LTQ0LjQzLTMuNDItNTEtNy45NS01LjMzLTMuNjgtMS0xMy44OC04LjM0LTE4LjYxQzExMSwzNjAuMiw5OS44OCwzNjEuMTksODMuMTYsMzUyYy0xMC42NS01Ljg4LTQuNjEtOS41Mi0xLjA2LTExLjI0LDYwLjYtMjkuMzQsNzAuMjctNzQuNjQsNzAuNy03OCwuNTItNC4wNywxLjEtNy4yNy0zLjM4LTExLjQxLTQuMzMtNC0yMy41NC0xNS44OS0yOC44Ny0xOS42MS04LjgyLTYuMTYtMTIuNy0xMi4zMS05Ljg0LTE5Ljg3LDItNS4yMyw2Ljg4LTcuMiwxMi03LjJhMjIuMywyMi4zLDAsMCwxLDQuODEuNTRjOS42OCwyLjEsMTkuMDgsNi45NSwyNC41MSw4LjI2YTguNjQsOC42NCwwLDAsMCwyLC4yN2MyLjksMCwzLjkyLTEuNDYsMy43Mi00Ljc4LS42Mi0xMC41OS0yLjEyLTMxLjIzLS40NS01MC41MiwyLjI5LTI2LjU0LDEwLjg0LTM5LjY5LDIxLTUxLjMyLDQuODgtNS41OSwyNy44MS0yOS44Miw3MS42Ni0yOS44MlMzMTYuOCwxMDEuNDMsMzIxLjY4LDEwN2MxMC4xNywxMS42MywxOC43MywyNC43OCwyMSw1MS4zMiwxLjY3LDE5LjI5LjIzLDM5Ljk0LS40NSw1MC41Mi0uMjMsMy40OS44Miw0Ljc4LDMuNzIsNC43OGE4LjU2LDguNTYsMCwwLDAsMi0uMjdjNS40NC0xLjMxLDE0Ljg0LTYuMTYsMjQuNTItOC4yNmEyMi4zLDIyLjMsMCwwLDEsNC44MS0uNTRjNS4xNSwwLDEwLDIsMTIsNy4yLDIuODYsNy41Ni0xLDEzLjcxLTkuODMsMTkuODctNS4zMywzLjcyLTI0LjU0LDE1LjYtMjguODcsMTkuNjEtNC40OSw0LjE0LTMuOSw3LjM0LTMuMzgsMTEuNDEuNDMsMy40MSwxMC4wOSw0OC43MSw3MC43LDc4QzQyMS40OCwzNDIuNDMsNDI3LjUyLDM0Ni4wNyw0MTYuODcsMzUyWiIvPjwvZz48L3N2Zz4="><ul><li><a href="faq.html">Foire aux questions</a></li><li><a href="memories_history.html">Souvenirs</a></li></ul></div><div class="rightpanel"><p><h1>Foire aux questions</h1><h3>Quelles informations puis-je trouver dans la section "Télécharger mes données"&nbsp;?</h3><p>Ce fichier HTML contient les données précises que vous avez sélectionnées lors de l'exportation via "Mes données" (aussi appelé "Télécharger vos données"). Selon vos choix, il peut inclure l'historique de vos connexions, de vos Snaps, de vos Chats, le contenu partagé avec My AI, vos amis·es, votre contenu Spotlight, votre historique d'achats, votre profil utilisateur, votre historique de localisation, et d'autres informations. Vous pouvez explorer les différentes sections en cliquant sur les liens à gauche. Nous avons ajouté des précisions pour vous aider à comprendre les données de ce fichier, mais n'hésitez pas à <a href="https://help.snapchat.com/hc/?utm_source=dmd&utm_medium=info&utm_campaign=faq">nous contacter</a> si vous avez la moindre question.</p><p>Si vous avez choisi d'exporter vos Souvenirs, les médias de vos Chats ou vos Stories partagées, vous les trouverez dans divers dossiers créés lors de la décompression du fichier zip "Mes données".</p><p>Si vous avez opté pour l'exportation de fichiers JSON, il vous suffira de décompresser le fichier zip "Mes données" pour accéder à vos fichiers JSON dans le dossier dédié.</p><h3>Que faire si je constate qu'il manque des informations&nbsp;?</h3><p>Nous faisons tout notre possible pour que vos données les plus récentes soient incluses dans "Télécharger mes données", mais il arrive parfois qu'un délai soit nécessaire avant qu'elles n'apparaissent. Si vous pensez qu'il manque des informations, comme un historique récent de Chat ou de Snap, essayez de télécharger vos données à nouveau d'ici un jour ou deux. Si le problème persiste et que les informations de cette FAQ ne répondent pas à vos questions, <a href="https://help.snapchat.com/hc/requests/new?utm_source=dmd&utm_medium=missing&utm_campaign=faq">contactez-nous</a>.</p><p>Si une section est absente de ce fichier HTML, cela signifie que vous n'avez pas de données disponibles pour celle-ci ou que vous ne l'avez pas spécifiquement sélectionnée via l'option "Sélectionner les données à inclure" lorsque vous avez demandé une copie de vos données.</p><p>N'oubliez pas que nous stockons différentes catégories d'informations pour des durées variées. Cela signifie que vous pourriez ne pas avoir accès à l'intégralité des données collectées depuis vos débuts sur Snapchat, que ce soit via "Télécharger mes données" ou directement dans l'application. De plus, les types d'informations que nous recueillons et conservons peuvent évoluer avec le temps, à mesure que nous ajoutons ou retirons certaines fonctionnalités. Pour en savoir plus sur la durée de conservation de vos informations, veuillez consulter la section "Durée de conservation de vos données" de notre <a href="https://www.snap.com/en-US/privacy/privacy-policy#how-long-we-keep-information">Politique de confidentialité</a>.</p><p>Consultez notre <a href="https://help.snapchat.com/hc/articles/7012334940948?utm_source=dmd&utm_medium=missing&utm_campaign=faq">page d'aide</a> pour plus de détails sur la suppression des Snaps et des Chats.</p><h3>Quelles autres informations puis-je consulter&nbsp;?</h3><p>En plus des informations que vous pouvez consulter dans votre fichier HTML et dans les différents dossiers multimédias (en fonction de vos sélections dans l'exportation multimédia), vous pouvez accéder à certaines informations de votre compte directement dans l'application Snapchat. Cela comprend votre nom, votre nom d'utilisateur, votre date de naissance, votre numéro de téléphone, votre adresse e-mail, votre Snapscore, les Snapchatters que vous avez bloqués, vos Souvenirs, votre Bitmoji, votre Snapcode, vos commandes (comme les Filtres et Lenses personnalisés) et des informations sur les Spectacles. Pour les renseignements les plus à jour sur la durée de stockage des différents types de contenu, consultez cet <a href="https://help.snapchat.com/hc/articles/7012334940948?utm_source=dmd&utm_medium=oth&utm_campaign=faq">article d'aide</a>.</p><h3>Comment puis-je gérer mes informations&nbsp;?</h3><p>Avoir le contrôle de vos informations et de vos réglages est un élément fondamental de l'expérience Snapchat. Si vous êtes ici, c'est que vous avez utilisé notre outil "Télécharger mes données" pour voir quels types d'informations nous conservons à votre sujet. Nous proposons également d'autres outils pour accéder à vos informations, les mettre à jour et les supprimer (et bien plus encore), décrits plus en détail dans la section "<a href="https://www.snap.com/privacy/privacy-policy#control-over-your-information">Contrôle de vos données</a>" de notre Politique de confidentialité.</p><h3>Comment mes informations sont-elles partagées&nbsp;?</h3><p>Lorsque nous partageons des informations, c'est généralement à votre demande (par exemple, lorsque vous publiez sur Spotlight ou envoyez un Chat à un·e ami·e) ou parce que nous devons le faire pour fournir nos services ou nous conformer à la loi. Pour plus d'informations sur le partage de vos informations, veuillez consulter la section "<a href="https://www.snap.com/privacy/privacy-policy#how-we-share-information">Partage des informations</a>" de notre Politique de confidentialité.</p><h3>Quelles catégories et/ou informations à caractère personnel Snap a-t-il collectées à mon sujet&nbsp;?</h3><p>Vous pouvez consulter notre <a href="https://www.snap.com/en-US/privacy/privacy-policy/">Politique de confidentialité</a> et notre <a href="https://www.snap.com/en-US/privacy/us-state-privacy-notice">Avis de confidentialité pour les États-Unis</a> afin de mieux comprendre les catégories d'informations que nous collectons. Téléchargez vos données pour obtenir plus de détails.</p><h3>J'ai une autre question concernant la confidentialité.</h3><p>Nous serions ravis de vous répondre&nbsp;! Rendez-vous <a href="https://help.snapchat.com/hc/articles/7012357237396?utm_source=dmd&utm_medium=pq&utm_campaign=faq">ici</a> pour d'autres FAQ sur la confidentialité ou <a href="https://help.snapchat.com/hc/p/5749439348080640-help-topic?utm_source=dmd&utm_medium=pq&utm_campaign=faq">ici</a> pour nous poser votre question directement.</p></p></div></body>
+    <script>
+
+        const navigationItems = document.querySelectorAll('.leftpanel li');
+        navigationItems.forEach(item => {
+            const link = item.querySelector('a');
+            const linkHref = link.getAttribute('href');
+            const currentUrl = window.location.pathname;
+
+            if (currentUrl.endsWith(linkHref)) {
+                item.classList.add('active'); // Add 'active' class to the <li> element
+            }
+
+            item.addEventListener('click', function(event) {
+                event.preventDefault();
+                if(currentUrl.includes("subpage")){
+                    const newHref = "../"+linkHref;
+                     // Navigate to the new HTML page from one of the chat/snap subpages
+                    window.location.href = newHref;
+                }else{
+                    // Navigate to the new HTML page
+                    window.location.href = linkHref;
+                }
+            });
+        });
+
+
+
+        // Scroll to the active navigation item on page load
+        window.addEventListener('DOMContentLoaded', () => {
+            const activeLink = document.querySelector('.leftpanel li.active');
+            if (activeLink) {
+                const linkRect = activeLink.getBoundingClientRect();
+                if (linkRect.top < 0 || linkRect.bottom > window.innerHeight) {
+                    activeLink.scrollIntoView({ behavior: 'auto' });
+                }
+            }
+        });
+    </script></html>
