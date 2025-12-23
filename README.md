@@ -66,6 +66,12 @@ python3 ./download_memories.py --test
 
 # Normal mode (all available memories)
 python3 ./download_memories.py
+
+# Faster mode with parallel workers
+python3 ./download_memories.py --workers 3
+
+# Parallel workers + custom retry count
+python3 ./download_memories.py --workers 4 --retries 3
 ```
 
 ## ✨ Features
@@ -96,6 +102,23 @@ python3 ./download_memories.py
 - Download links expire after a few days
 - A 0.5s pause is applied between downloads
 - Without `ffmpeg`, video overlays cannot be merged
+
+## 🚀 Faster downloads with workers
+
+You can enable parallel downloads using `--workers`. This speeds up downloads by running multiple requests at once.
+
+Examples:
+```bash
+# 3 parallel downloads (recommended starting point)
+python3 ./download_memories.py --workers 3
+
+# 4 parallel downloads with retries
+python3 ./download_memories.py --workers 4 --retries 3
+```
+
+Modes:
+- Sequential mode (`--workers 1`): downloads one file at a time with a 0.5s pause between files. This is the safest option and the default.
+- Parallel mode (`--workers > 1`): downloads multiple files at once. This is faster but can trigger rate limits. If the script detects blocking (HTTP 403/429), it automatically falls back to sequential mode for the remaining files.
 
 ## 🆘 Troubleshooting
 
